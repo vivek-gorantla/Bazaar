@@ -1,6 +1,6 @@
 # Baazar
 
-> **AI-powered platform for hyper local commerce.**
+> **AI-powered infrastructure for local retail.**
 
 Baazar is an AI-powered hyper local commerce platform designed to help local merchants digitize and manage their businesses through a conversational interface.
 
@@ -10,30 +10,42 @@ For customers, Baazar provides **AI-powered product discovery, recommendations, 
 
 ---
 
-## 🚀 Core Features
+# Problem Statement: AI Growth & Agentic Commerce
 
-### 🏪 Merchant
+Baazar directly tackles the challenge of **growing merchant revenue and making stores transactable by AI buyers end-to-end**. In the emerging era of agent-to-agent commerce (fueled by NPCI's UAP and global protocol races), local merchants need intelligent infrastructure to participate.
 
-* 🤖 Conversational store management
-* 🎙️ Voice, image, text & CSV inputs
-* 📦 Product & inventory management
-* 🤝 Supplier & procurement management
-* 📈 Discounts, upselling & cross-selling
-* 🧾 Conversational POS & checkout
-* ⚡ Automated merchant onboarding
-
-### 🛒 Customer
-
-* 🔎 Intelligent product discovery
-* 🧠 Personalized recommendations
-* 🛍️ Conversational shopping & cart
-* 📋 Budget/occasion-based shopping plans
-* 💳 AI-assisted checkout & payments
-* 📦 Order tracking, cancellations & support
+Baazar aligns with this vision through:
+* **Conversational In-App Checkout:** Customers and AI buyers can build carts, validate stock, and checkout entirely through a natural language interface.
+* **Agent-Readable Catalog:** The Parsing Gateway converts unstructured inputs (voice, photos, text) into strict, Zod-validated "Product Contracts", ensuring the merchant's inventory is perfectly formatted for AI consumption.
+* **Upsell, Cross-Sell & Campaign Orchestrator:** A dedicated `Growth Agent` actively runs discount campaigns and configures intelligent cross-selling at the Point of Sale to maximize revenue.
+* **Bounded & Gated Money Actions:** Every financial transaction (handled via Razorpay test-mode APIs) is strictly explainable and bounded. The `Payment Agent` requires explicit customer approval before any money moves. Furthermore, all agent actions are streamed to Kafka to provide a complete, immutable audit trail and allow for graceful failure handling.
 
 ---
 
-# 🧠 AI Agent Architecture
+## Core Features
+
+### Merchant
+
+* Conversational store management
+* Voice, image, text & CSV inputs
+* Product & inventory management
+* Supplier & procurement management
+* Discounts, upselling & cross-selling
+* Conversational POS & checkout
+* Automated merchant onboarding
+
+### Customer
+
+* Intelligent product discovery
+* Personalized recommendations
+* Conversational shopping & cart
+* Budget/occasion-based shopping plans
+* AI-assisted checkout & payments
+* Order tracking, cancellations & support
+
+---
+
+# AI Agent Architecture
 
 Baazar relies on a sophisticated multi-agent orchestration system to handle interactions for both merchants and customers, including dynamic UI synchronization and multimodal inputs.
 
@@ -41,38 +53,7 @@ For a deep dive into the system flows and detailed architecture diagrams, please
 
 ---
 
-# 🔐 Governance
-
-Baazar separates **AI decision-making from actual business operations**.
-
-Sensitive actions such as payments, inventory changes, and order operations can pass through a policy layer before execution.
-
-```text
-User Request
-     ↓
-Intent Detection
-     ↓
-Policy Check
-     ↓
-Approval / Authorization
-     ↓
-Tool Execution
-     ↓
-Kafka Event + Audit Log
-```
-
-This provides a foundation for:
-
-* Action authorization
-* User approvals
-* Spending limits
-* Explainability
-* Audit trails
-* Safe failure handling
-
----
-
-# 🎙️ Multi-Modal Interaction
+# Multi-Modal Interaction
 
 Baazar supports multiple merchant input formats:
 
@@ -91,7 +72,7 @@ The orchestrator identifies the intent and routes it to the **Inventory Agent**,
 
 ---
 
-# 🛠️ Tech Stack
+# Tech Stack
 
 ### Frontend
 
@@ -123,7 +104,7 @@ The orchestrator identifies the intent and routes it to the **Inventory Agent**,
 
 ---
 
-# 📂 Project Structure
+# Project Structure
 
 ```text
 baazar/
@@ -153,7 +134,7 @@ baazar/
 
 ---
 
-# ⚙️ Getting Started
+# Getting Started
 
 ### Prerequisites
 
@@ -200,7 +181,7 @@ RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
 ```
 
-# 🌱 Vision
+# Vision
 
 Baazar aims to make **every local store digital, discoverable, and intelligent**.
 
