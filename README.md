@@ -88,7 +88,7 @@ The orchestrator identifies the intent and routes it to the **Inventory Agent**,
 * Node.js
 * Express.js
 * TypeScript
-* OpenAI SDK
+* Azure AI
 * ElevenLabs
 * WebSockets
 * SSE
