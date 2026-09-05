@@ -1,187 +1,292 @@
 Baazar AI Agent Architecture
 
-Baazar uses a central Merchant Orchestrator to understand user
-intent and route requests to specialized agents. The architecture
-supports multimodal merchant input, conversational customer workflows,
-real-time UI synchronization, and event-driven services.
+Baazar uses a central Agent Orchestrator to understand requests and route them to specialized agents. The architecture supports multimodal merchant input, conversational customer workflows, real-time UI synchronization, and event-driven services.
 
-1. Merchant Agent Orchestration
+1. Merchant Architecture
 
-Merchants can interact using voice, images, text, or CSV. The
-Parsing Gateway converts each input into a structured representation
-before sending it to the Agent Orchestrator.
+flowchart LR
 
-graph TD
     subgraph INPUTS["Merchant Inputs"]
-        VOICE["Voice Input"]
-        IMAGE["Photo Input"]
-        TEXT["Text Input"]
-        CSV["CSV Input"]
+        V["Voice"]
+        I["Image"]
+        T["Text"]
+        C["CSV"]
     end
 
-    subgraph PARSING["Parsing Layer"]
-        GATEWAY["Parsing Gateway"]
-        IMAGE_P["Image Parser"]
-        VOICE_P["Voice Parser"]
-        TEXT_P["Text Parser"]
-        CSV_P["CSV Parser"]
+    subgraph PARSER["Parsing Layer"]
+        G["Parsing Gateway"]
+        VP["Voice Parser"]
+        IP["Image Parser"]
+        TP["Text Parser"]
+        CP["CSV Parser"]
     end
 
-    VOICE --> GATEWAY
-    IMAGE --> GATEWAY
-    TEXT --> GATEWAY
-    CSV --> GATEWAY
+    V --> G
+    I --> G
+    T --> G
+    C --> G
 
-    GATEWAY --> IMAGE_P
-    GATEWAY --> VOICE_P
-    GATEWAY --> TEXT_P
-    GATEWAY --> CSV_P
+    G --> VP
+    G --> IP
+    G --> TP
+    G --> CP
 
-    IMAGE_P --> ORCH["Agent Orchestrator"]
-    VOICE_P --> ORCH
-    TEXT_P --> ORCH
-    CSV_P --> ORCH
+    VP --> O["Agent Orchestrator"]
+    IP --> O
+    TP --> O
+    CP --> O
 
-    ORCH <--> LLM["Azure OpenAI"]
+    O <--> LLM["Azure OpenAI"]
 
-    ORCH --> PRODUCT["Product Agent"]
-    ORCH --> INVENTORY["Inventory Agent"]
-    ORCH --> SUPPLIER["Supplier Agent"]
+    O --> PA["Product Agent"]
+    O --> IA["Inventory Agent"]
+    O --> SA["Supplier Agent"]
+    O --> GA["Growth Agent"]
+    O --> OA["Onboarding Agent"]
 
-    PRODUCT --> CONTRACT["Product Contract"]
-    INVENTORY --> CONTRACT
-    SUPPLIER --> CONTRACT
+    PA --> S["Business Services"]
+    IA --> S
+    SA --> S
+    GA --> S
+    OA --> S
 
-    CONTRACT --> VALIDATE["Zod Validation"]
-    VALIDATE --> SERVICES["Business Services"]
-    SERVICES --> DB[("Product / Inventory Database")]
+    S --> DB[("PostgreSQL / MongoDB")]
+    S --> R[("Redis")]
+    S --> K[("Kafka")]
 
-Product Contract
+Merchant Request Flow
 
-The orchestrator converts relevant requests into a validated structured
-contract such as:
-
-name
-description
-category
-unit
-price
-stockQty
-attributes
-sku
-
-The contract is validated before reaching the business services, keeping
-AI-generated data separate from deterministic application logic.
+flowchart LR
+    A["Merchant Request"] --> B["Parsing Gateway"]
+    B --> C["Agent Orchestrator"]
+    C --> D["Intent Detection"]
+    D --> E["Specialized Agent"]
+    E --> F["Tool / Business Service"]
+    F --> G["Database"]
+    F --> H["Kafka Event"]
 
 2. Customer Conversational Architecture
 
-Customers interact through a Customer Conversational Agent, which
-coordinates discovery, planning, and purchasing workflows.
+flowchart LR
 
-graph TD
     CUSTOMER["Customer"] --> CCA["Customer Conversational Agent"]
 
-    CCA <--> REDIS[("Redis Cache")]
-    CCA --> DISCOVERY["Discovery Agent"]
-    CCA --> PLANNING["Planning Agent"]
+    CCA <--> REDIS[("Redis")]
+
+    CCA --> DISC["Discovery Agent"]
+    CCA --> PLAN["Planning Agent"]
     CCA --> PURCHASE["Purchase Agent"]
 
-    DISCOVERY --> ORCH["Customer Orchestrator"]
-    PLANNING --> ORCH
+    DISC --> ORCH["Customer Orchestrator"]
+    PLAN --> ORCH
     PURCHASE --> ORCH
 
-    ORCH <--> RECOMMEND["Recommendation Agent"]
-    ORCH <--> CART["Cart Agent"]
-    ORCH <--> CHECKOUT["Checkout Agent"]
-    ORCH <--> PAYMENT["Payment Agent"]
-    ORCH <--> ORDER["Order Agent"]
-    ORCH <--> SUPPORT["Support Agent"]
+    ORCH --> REC["Recommendation Agent"]
+    ORCH --> CART["Cart Agent"]
+    ORCH --> CHECK["Checkout Agent"]
+    ORCH --> PAY["Payment Agent"]
+    ORCH --> ORDER["Order Agent"]
+    ORCH --> SUPPORT["Support Agent"]
 
-    RECOMMEND --> SERVICES["Service Layer"]
+    REC --> SERVICES["Service Layer"]
     CART --> SERVICES
-    CHECKOUT --> SERVICES
-    PAYMENT --> SERVICES
+    CHECK --> SERVICES
+    PAY --> SERVICES
     ORDER --> SERVICES
     SUPPORT --> SERVICES
 
-    SERVICES --> PRODUCT_API["Product API"]
-    SERVICES --> ORDER_API["Order API"]
-    SERVICES --> PAYMENT_API["Payment API"]
+    SERVICES --> PRODUCTAPI["Product API"]
+    SERVICES --> ORDERAPI["Order API"]
+    SERVICES --> PAYMENTAPI["Payment API"]
 
-    SERVICES --> KAFKA[("Kafka Events")]
+    SERVICES --> KAFKA[("Kafka")]
 
-3. Dynamic UI and Context Synchronization
+3. Dynamic UI & Context Synchronization
 
-Baazar can synchronize the AI agent with the merchant's current UI
-state.
+The UI Registry keeps track of the current pages and agent-enabled fields. UI context is sent to the backend through WebSockets so the AI can generate structured UI actions.
 
-For example, a merchant can say:
+flowchart LR
 
-"My legal name is Ramesh Enterprises and my GST number is ..."
+    M["Merchant"] --> VOICE["Voice / Text"]
 
-The frontend sends the current UI context to the backend. The AI
-generates structured field actions, which are sent back through
-WebSockets and executed by the UI.
-
-graph TD
-    subgraph FRONTEND["Frontend / UI Registry"]
-        FORM["Form Fields"]
+    subgraph FRONTEND["Frontend"]
+        FORM["Forms / UI"]
         FIELD["Agent Field Components"]
-        REGISTRY["UI Registry"]
+        REG["UI Registry"]
+        EXEC["UI Action Executor"]
+
         FORM --> FIELD
-        FIELD --> REGISTRY
+        FIELD --> REG
+        EXEC --> REG
     end
 
-    MERCHANT["Merchant"] --> VOICE["Voice Input"]
+    VOICE --> WS["WebSocket"]
+    REG --> WS
 
-    REGISTRY --> WS["WebSocket"]
-    VOICE --> WS
     WS --> BACKEND["Backend"]
     BACKEND --> CONTEXT["UI Context"]
-
     CONTEXT --> LLM["AI Model"]
+
     LLM --> ACTIONS["Field Actions"]
     ACTIONS --> BACKEND
 
     BACKEND --> WS
-    WS --> EXECUTOR["UI Action Executor"]
-    EXECUTOR --> REGISTRY
+    WS --> EXEC
 
-4. Core Agents
+Example
 
-Agent                      Responsibility
+Merchant:
+"My legal name is Ramesh Enterprises and my GST number is XXXXX."
 
-Product Agent          Product catalog management
-Inventory Agent        Stock tracking and updates
-Supplier Agent         Suppliers and purchase orders
-Growth Agent           Promotions, upselling, cross-selling and POS
-Onboarding Agent       Merchant and store setup
-Discovery Agent        Customer product discovery
-Planning Agent         Budget, occasion and quantity-based shopping
-Purchase Agent         Customer purchasing workflows
-Recommendation Agent   Product recommendations and alternatives
-Cart Agent             Conversational cart management
-Checkout Agent         Order validation and checkout
-Payment Agent          Payment initiation and handling
-Order Agent            Order lifecycle management
-Support Agent          Customer support workflows
+        ↓
 
-5. Execution and Governance
+UI Context + Voice Input
 
-AI agents determine intent and actions, while deterministic services
-perform business operations.
+        ↓
 
-graph TD
-    REQUEST["User Request"] --> INTENT["Intent Detection"]
-    INTENT --> POLICY["Policy / Authorization"]
-    POLICY -->|Allowed| TOOL["Agent Tool"]
-    POLICY -->|Approval Required| APPROVAL["User Approval"]
+AI Model
+
+        ↓
+
+Fill Fields Action
+
+        ↓
+
+WebSocket
+
+        ↓
+
+UI Action Executor
+
+        ↓
+
+Form Updated
+
+4. Governance & Execution
+
+AI determines what should happen, while deterministic services control how the operation is executed.
+
+flowchart LR
+
+    REQUEST["User Request"]
+    INTENT["Intent Detection"]
+    POLICY["Policy Engine"]
+    APPROVAL["User Approval"]
+    TOOL["Agent Tool"]
+    SERVICE["Business Service"]
+    DB[("Database")]
+    EVENT[("Kafka / Audit Log")]
+    DENIED["Safe Failure"]
+
+    REQUEST --> INTENT
+    INTENT --> POLICY
+
+    POLICY -->|"Allowed"| TOOL
+    POLICY -->|"Approval Required"| APPROVAL
     APPROVAL --> TOOL
-    POLICY -->|Denied| SAFE["Safe Failure"]
+    POLICY -->|"Denied"| DENIED
 
-    TOOL --> SERVICE["Business Service"]
-    SERVICE --> DATABASE[("Database")]
-    SERVICE --> EVENT["Kafka Event / Audit Log"]
+    TOOL --> SERVICE
+    SERVICE --> DB
+    SERVICE --> EVENT
 
-This separation provides a foundation for authorization, approvals,
-explainability, audit trails, and safe failure handling.
+This provides a foundation for:
+
+Authorization
+
+User approval
+
+Spending limits
+
+Explainability
+
+Audit trails
+
+Safe failure handling
+
+5. Core Agents
+
+Agent
+
+Responsibility
+
+Product Agent
+
+Product catalog management
+
+Inventory Agent
+
+Stock tracking and updates
+
+Supplier Agent
+
+Suppliers and purchase orders
+
+Growth Agent
+
+Promotions, upselling, cross-selling and POS
+
+Onboarding Agent
+
+Merchant and store setup
+
+Discovery Agent
+
+Customer product discovery
+
+Planning Agent
+
+Budget and occasion-based shopping
+
+Purchase Agent
+
+Customer purchasing workflows
+
+Recommendation Agent
+
+Recommendations and alternatives
+
+Cart Agent
+
+Conversational cart management
+
+Checkout Agent
+
+Order validation and checkout
+
+Payment Agent
+
+Payment initiation
+
+Order Agent
+
+Order lifecycle
+
+Support Agent
+
+Customer support
+
+6. High-Level System View
+
+flowchart TB
+
+    MERCHANT["Merchant"]
+    CUSTOMER["Customer"]
+
+    MERCHANT --> MI["Merchant Interface"]
+    CUSTOMER --> CI["Customer Interface"]
+
+    MI --> MG["Merchant Orchestrator"]
+    CI --> CG["Customer Conversational Agent"]
+
+    MG --> MA["Merchant Agents"]
+    CG --> CA["Customer Agents"]
+
+    MA --> SERVICES["Core Business Services"]
+    CA --> SERVICES
+
+    SERVICES --> DATA[("PostgreSQL / MongoDB")]
+    SERVICES --> CACHE[("Redis")]
+    SERVICES --> EVENTS[("Kafka")]
+
+    SERVICES --> PAYMENT["Razorpay"]
