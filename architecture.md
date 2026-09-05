@@ -1,142 +1,187 @@
-# Baazar AI Agent Architecture
+Baazar AI Agent Architecture
 
-Baazar uses a central **Merchant Orchestrator** that understands user intent and routes requests to specialized agents. The system is designed to handle multiple input modalities, coordinate complex multi-agent interactions on both the merchant and customer sides, and keep the user interface synchronized in real-time.
+Baazar uses a central Merchant Orchestrator to understand user
+intent and route requests to specialized agents. The architecture
+supports multimodal merchant input, conversational customer workflows,
+real-time UI synchronization, and event-driven services.
 
----
+1. Merchant Agent Orchestration
 
-## 1. Merchant Agent Orchestration
+Merchants can interact using voice, images, text, or CSV. The
+Parsing Gateway converts each input into a structured representation
+before sending it to the Agent Orchestrator.
 
-Merchants can interact with the system using Voice, Photo, Text, or CSV inputs. These inputs are parsed by a dedicated Parsing Layer before being handed off to the Agent Orchestrator. The Orchestrator uses Azure OpenAI to identify intent, formulate a structured "Product Contract", and delegate execution to the appropriate specialized agent.
-
-```mermaid
 graph TD
-    subgraph Inputs[Merchant Inventory Inputs]
-        VI[Voice Input]
-        PI[Photo Based Input]
-        NI[NLP Text Input]
-        CI[CSV Input]
+    subgraph INPUTS["Merchant Inputs"]
+        VOICE["Voice Input"]
+        IMAGE["Photo Input"]
+        TEXT["Text Input"]
+        CSV["CSV Input"]
     end
 
-    subgraph Parsing[Parsing Layer]
-        PL[Parsing Gateway]
-        IP[Image Parser]
-        VP[Voice Parser]
-        TP[Text Parser]
-        CP[CSV Parser]
+    subgraph PARSING["Parsing Layer"]
+        GATEWAY["Parsing Gateway"]
+        IMAGE_P["Image Parser"]
+        VOICE_P["Voice Parser"]
+        TEXT_P["Text Parser"]
+        CSV_P["CSV Parser"]
     end
 
-    VI --> PL
-    PI --> PL
-    NI --> PL
-    CI --> PL
+    VOICE --> GATEWAY
+    IMAGE --> GATEWAY
+    TEXT --> GATEWAY
+    CSV --> GATEWAY
 
-    PL -->|What the image model can see| IP
-    PL -->|Convert voice to text| VP
-    PL -->|Basic text normalization| TP
-    PL -->|Convert CSV to objects| CP
+    GATEWAY --> IMAGE_P
+    GATEWAY --> VOICE_P
+    GATEWAY --> TEXT_P
+    GATEWAY --> CSV_P
 
-    IP --> AO[Agent Orchestrator]
-    VP --> AO
-    TP --> AO
-    CP --> AO
+    IMAGE_P --> ORCH["Agent Orchestrator"]
+    VOICE_P --> ORCH
+    TEXT_P --> ORCH
+    CSV_P --> ORCH
 
-    AO <-->|Identify intent call tools| LLM((Azure OpenAI LLM))
-    LLM -->|Generate contract / Send agents data| PC[Product Contract<br/>name, description, category, unit, price, stockQty, attributes, sku]
+    ORCH <--> LLM["Azure OpenAI"]
 
-    PC --> JV{Zod Validation}
-    JV --> IS[Inventory Service]
-    IS --> DB[(Product Catalog Database)]
+    ORCH --> PRODUCT["Product Agent"]
+    ORCH --> INVENTORY["Inventory Agent"]
+    ORCH --> SUPPLIER["Supplier Agent"]
 
-    AO --> PA{Product Agent}
-    AO --> IA{Inventory Agent}
-    AO --> SA{Supplier Agent}
+    PRODUCT --> CONTRACT["Product Contract"]
+    INVENTORY --> CONTRACT
+    SUPPLIER --> CONTRACT
 
-    PA -->|Understand merchant input & convert it into a Product Contract| QC[Query Catalog Commands]
-    IA -->|Its job is understanding inventory| QC
-    SA -->|This is the general-purpose conversational agent| QC
-    QC --> DB
-```
+    CONTRACT --> VALIDATE["Zod Validation"]
+    VALIDATE --> SERVICES["Business Services"]
+    SERVICES --> DB[("Product / Inventory Database")]
 
----
+Product Contract
 
-## 2. Customer Conversational Architecture
+The orchestrator converts relevant requests into a validated structured
+contract such as:
 
-On the customer side, the interactions are managed by a **Customer Conversational Agent** which caches data via Redis and coordinates distributed events via Kafka. The conversational agent fans out to discovery, planning, and purchase agents, which then connect back to the core orchestrator.
+name
+description
+category
+unit
+price
+stockQty
+attributes
+sku
 
-```mermaid
+The contract is validated before reaching the business services, keeping
+AI-generated data separate from deterministic application logic.
+
+2. Customer Conversational Architecture
+
+Customers interact through a Customer Conversational Agent, which
+coordinates discovery, planning, and purchasing workflows.
+
 graph TD
-    C((Customer)) --> CCA[Customer Conversational Agent]
-    
-    CCA <--> Redis[(Redis Caching)]
-    Redis <--> Kafka((Kafka))
+    CUSTOMER["Customer"] --> CCA["Customer Conversational Agent"]
 
-    CCA --> DA[Discovery Agent]
-    CCA --> PA1[Planning Agent]
-    CCA --> PuA[Purchase Agent]
+    CCA <--> REDIS[("Redis Cache")]
+    CCA --> DISCOVERY["Discovery Agent"]
+    CCA --> PLANNING["Planning Agent"]
+    CCA --> PURCHASE["Purchase Agent"]
 
-    DA --> O((Orchestrator))
-    PA1 --> O
-    PuA --> O
+    DISCOVERY --> ORCH["Customer Orchestrator"]
+    PLANNING --> ORCH
+    PURCHASE --> ORCH
 
-    O <--> RA[Recommendation Agent]
-    O <--> PayA[Payment Agent]
-    O <--> CA[Cart Agent]
-    O <--> ChA[Checkout Agent]
-    O <--> SupA[Support Agent]
-    O <--> OA[Order Agent]
+    ORCH <--> RECOMMEND["Recommendation Agent"]
+    ORCH <--> CART["Cart Agent"]
+    ORCH <--> CHECKOUT["Checkout Agent"]
+    ORCH <--> PAYMENT["Payment Agent"]
+    ORCH <--> ORDER["Order Agent"]
+    ORCH <--> SUPPORT["Support Agent"]
 
-    RA --> SL[Service Layer]
-    PayA --> SL
-    CA --> SL
-    ChA --> SL
-    SupA --> SL
-    OA --> SL
+    RECOMMEND --> SERVICES["Service Layer"]
+    CART --> SERVICES
+    CHECKOUT --> SERVICES
+    PAYMENT --> SERVICES
+    ORDER --> SERVICES
+    SUPPORT --> SERVICES
 
-    SL --> APIs[APIs]
-    APIs --> ProdAPI{Product API}
-    APIs --> OrdAPI{Order API}
-    APIs --> PayAPI{Payment API}
-```
+    SERVICES --> PRODUCT_API["Product API"]
+    SERVICES --> ORDER_API["Order API"]
+    SERVICES --> PAYMENT_API["Payment API"]
 
----
+    SERVICES --> KAFKA[("Kafka Events")]
 
-## 3. Dynamic UI & Context Synchronization
+3. Dynamic UI and Context Synchronization
 
-Baazar heavily relies on a dynamic, AI-driven UI. The UI Registry on the frontend stores all pages and fields visited by the user. When a merchant provides an instruction (like filling out a form via voice), the UI context is sent over WebSockets to the backend, enabling the AI to directly fill in the corresponding fields on the merchant's screen.
+Baazar can synchronize the AI agent with the merchant's current UI
+state.
 
-```mermaid
+For example, a merchant can say:
+
+"My legal name is Ramesh Enterprises and my GST number is ..."
+
+The frontend sends the current UI context to the backend. The AI
+generates structured field actions, which are sent back through
+WebSockets and executed by the UI.
+
 graph TD
-    subgraph Frontend [Frontend / UI Registry]
-        FF[Form Fields: Store Details] --> AF[Agent Field Component]
-        AF --> UIR[UI Registry: Stores all pages and fields as visited by user]
-        UIR --> |Creates a file to register the component| Ex[Agent Field Input Example]
+    subgraph FRONTEND["Frontend / UI Registry"]
+        FORM["Form Fields"]
+        FIELD["Agent Field Components"]
+        REGISTRY["UI Registry"]
+        FORM --> FIELD
+        FIELD --> REGISTRY
     end
 
-    subgraph Merchant Interaction
-        M((Merchant)) -->|Voice Input: 'My legal name is Ramesh Enterprises and my GST number is...'| LLM2((LLM))
-    end
-    
-    subgraph Backend & Real-time
-        UIR -->|Send pages to backend as context| WS[WebSocket]
-        WS --> B[Backend]
-        B --> UC[UI Context]
-        UC --> LLM2
-        
-        LLM2 -->|AI produces actions| FFT{Fill Fields Tool}
-        FFT --> B
-        B -->|Sends actions payload back| WS
-        WS -->|Creates executor to fill fields in UI| UIR
-    end
-```
+    MERCHANT["Merchant"] --> VOICE["Voice Input"]
 
----
+    REGISTRY --> WS["WebSocket"]
+    VOICE --> WS
+    WS --> BACKEND["Backend"]
+    BACKEND --> CONTEXT["UI Context"]
 
-## Core Agents Breakdown
+    CONTEXT --> LLM["AI Model"]
+    LLM --> ACTIONS["Field Actions"]
+    ACTIONS --> BACKEND
 
-| Agent                | Responsibility              |
-| -------------------- | --------------------------- |
-| **Product Agent**    | Product catalog management  |
-| **Inventory Agent**  | Stock tracking & updates    |
-| **Supplier Agent**   | Suppliers & purchase orders |
-| **Growth Agent**     | Promotions, upselling & POS |
-| **Onboarding Agent** | Merchant/store setup        |
+    BACKEND --> WS
+    WS --> EXECUTOR["UI Action Executor"]
+    EXECUTOR --> REGISTRY
+
+4. Core Agents
+
+Agent                      Responsibility
+
+Product Agent          Product catalog management
+Inventory Agent        Stock tracking and updates
+Supplier Agent         Suppliers and purchase orders
+Growth Agent           Promotions, upselling, cross-selling and POS
+Onboarding Agent       Merchant and store setup
+Discovery Agent        Customer product discovery
+Planning Agent         Budget, occasion and quantity-based shopping
+Purchase Agent         Customer purchasing workflows
+Recommendation Agent   Product recommendations and alternatives
+Cart Agent             Conversational cart management
+Checkout Agent         Order validation and checkout
+Payment Agent          Payment initiation and handling
+Order Agent            Order lifecycle management
+Support Agent          Customer support workflows
+
+5. Execution and Governance
+
+AI agents determine intent and actions, while deterministic services
+perform business operations.
+
+graph TD
+    REQUEST["User Request"] --> INTENT["Intent Detection"]
+    INTENT --> POLICY["Policy / Authorization"]
+    POLICY -->|Allowed| TOOL["Agent Tool"]
+    POLICY -->|Approval Required| APPROVAL["User Approval"]
+    APPROVAL --> TOOL
+    POLICY -->|Denied| SAFE["Safe Failure"]
+
+    TOOL --> SERVICE["Business Service"]
+    SERVICE --> DATABASE[("Database")]
+    SERVICE --> EVENT["Kafka Event / Audit Log"]
+
+This separation provides a foundation for authorization, approvals,
+explainability, audit trails, and safe failure handling.
