@@ -2,8 +2,9 @@ Baazar AI Agent Architecture
 
 Baazar uses a central Agent Orchestrator to understand requests and route them to specialized agents. The architecture supports multimodal merchant input, conversational customer workflows, real-time UI synchronization, and event-driven services.
 
-1. Merchant Architecture
+### 1. Merchant Architecture
 
+```mermaid
 flowchart LR
 
     subgraph INPUTS["Merchant Inputs"]
@@ -53,9 +54,11 @@ flowchart LR
     S --> DB[("PostgreSQL / MongoDB")]
     S --> R[("Redis")]
     S --> K[("Kafka")]
+```
 
-Merchant Request Flow
+### Merchant Request Flow
 
+```mermaid
 flowchart LR
     A["Merchant Request"] --> B["Parsing Gateway"]
     B --> C["Agent Orchestrator"]
@@ -64,9 +67,11 @@ flowchart LR
     E --> F["Tool / Business Service"]
     F --> G["Database"]
     F --> H["Kafka Event"]
+```
 
-2. Customer Conversational Architecture
+### 2. Customer Conversational Architecture
 
+```mermaid
 flowchart LR
 
     CUSTOMER["Customer"] --> CCA["Customer Conversational Agent"]
@@ -100,11 +105,13 @@ flowchart LR
     SERVICES --> PAYMENTAPI["Payment API"]
 
     SERVICES --> KAFKA[("Kafka")]
+```
 
-3. Dynamic UI & Context Synchronization
+### 3. Dynamic UI & Context Synchronization
 
 The UI Registry keeps track of the current pages and agent-enabled fields. UI context is sent to the backend through WebSockets so the AI can generate structured UI actions.
 
+```mermaid
 flowchart LR
 
     M["Merchant"] --> VOICE["Voice / Text"]
@@ -132,8 +139,9 @@ flowchart LR
 
     BACKEND --> WS
     WS --> EXEC
+```
 
-Example
+### Example
 
 Merchant:
 "My legal name is Ramesh Enterprises and my GST number is XXXXX."
@@ -162,10 +170,11 @@ UI Action Executor
 
 Form Updated
 
-4. Governance & Execution
+### 4. Governance & Execution
 
 AI determines what should happen, while deterministic services control how the operation is executed.
 
+```mermaid
 flowchart LR
 
     REQUEST["User Request"]
@@ -189,85 +198,39 @@ flowchart LR
     TOOL --> SERVICE
     SERVICE --> DB
     SERVICE --> EVENT
+```
 
 This provides a foundation for:
 
-Authorization
+* Authorization
+* User approval
+* Spending limits
+* Explainability
+* Audit trails
+* Safe failure handling
 
-User approval
+### 5. Core Agents
 
-Spending limits
+| Agent | Responsibility |
+| ----- | -------------- |
+| **Product Agent** | Product catalog management |
+| **Inventory Agent** | Stock tracking and updates |
+| **Supplier Agent** | Suppliers and purchase orders |
+| **Growth Agent** | Promotions, upselling, cross-selling and POS |
+| **Onboarding Agent** | Merchant and store setup |
+| **Discovery Agent** | Customer product discovery |
+| **Planning Agent** | Budget and occasion-based shopping |
+| **Purchase Agent** | Customer purchasing workflows |
+| **Recommendation Agent** | Recommendations and alternatives |
+| **Cart Agent** | Conversational cart management |
+| **Checkout Agent** | Order validation and checkout |
+| **Payment Agent** | Payment initiation |
+| **Order Agent** | Order lifecycle |
+| **Support Agent** | Customer support |
 
-Explainability
+### 6. High-Level System View
 
-Audit trails
-
-Safe failure handling
-
-5. Core Agents
-
-Agent
-
-Responsibility
-
-Product Agent
-
-Product catalog management
-
-Inventory Agent
-
-Stock tracking and updates
-
-Supplier Agent
-
-Suppliers and purchase orders
-
-Growth Agent
-
-Promotions, upselling, cross-selling and POS
-
-Onboarding Agent
-
-Merchant and store setup
-
-Discovery Agent
-
-Customer product discovery
-
-Planning Agent
-
-Budget and occasion-based shopping
-
-Purchase Agent
-
-Customer purchasing workflows
-
-Recommendation Agent
-
-Recommendations and alternatives
-
-Cart Agent
-
-Conversational cart management
-
-Checkout Agent
-
-Order validation and checkout
-
-Payment Agent
-
-Payment initiation
-
-Order Agent
-
-Order lifecycle
-
-Support Agent
-
-Customer support
-
-6. High-Level System View
-
+```mermaid
 flowchart TB
 
     MERCHANT["Merchant"]
@@ -290,3 +253,4 @@ flowchart TB
     SERVICES --> EVENTS[("Kafka")]
 
     SERVICES --> PAYMENT["Razorpay"]
+```
