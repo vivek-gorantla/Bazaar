@@ -49,7 +49,7 @@ Baazar aligns with this vision through:
 
 Baazar relies on a sophisticated multi-agent orchestration system to handle interactions for both merchants and customers, including dynamic UI synchronization and multimodal inputs.
 
-For a deep dive into the system flows and detailed architecture diagrams, please see the [Architecture Overview](architecture.md).
+For a deep dive into the system flows and detailed architecture diagrams, please see the architecture-images.
 
 ---
 
